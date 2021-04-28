@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+  Copyright (c) 2015-2018 Jean-Marc VIGLINO,
+  released under CeCILL-B (french BSD like) licence: http://www.cecill.info/
+-->
+  <title>UNESCO Heritage List-SEA</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  <meta name="description" content="UNESCO" />
+  <meta name="keywords" content="ol3, popup, overlay, jQuery, animation" />
+
+  <!-- Prevent image error on load with https -->
+	<script>
+		if (location.protocol == 'https:' && !/^localhost/.test(location.host)) {
+      location.href = window.location.href.replace(/^https:/,'http:');
+		}
+	</script>
+
+  <!-- jQuery -->
+  <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+
+  <!-- Openlayers -->
+  <link rel="stylesheet" href="https://openlayers.org/en/latest/css/ol.css" />
+  <script type="text/javascript" src="https://openlayers.org/en/latest/build/ol.js"></script>
+  <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL,Object.assign"></script>
+  
+  <!-- ol-ext -->
+  <link rel="stylesheet" href="http://viglino.github.io/ol-ext/dist/ol-ext.css" />
+  <script type="text/javascript" src="http://viglino.github.io/ol-ext/dist/ol-ext.js"></script>
+  <!-- Pointer events polyfill for old browsers, see https://caniuse.com/#feat=pointer -->
+  <script src="https://unpkg.com/elm-pep"></script>
+	
+
+  <link rel="stylesheet" href="http://viglino.github.io/ol-ext/examples/style.css" />
+   <style>
+   .header img {
+  float: left;
+  width: 50px;
+  height: 50px;
+}
+.header h2 {
+  position: relative;
+  top: 10px;
+  left: 10px;
+}
+.header h6 {
+  position: relative;
+  margin-block-end: 0em;
+  top:-7px;
+  left: 10px;
+	bottom:0px;
+}
+    .ol-scale-line{
+	 right:50%;
+	 left: auto;
+	 position:absolute;
+	 }
+	.ol-popup h1 {
+      font-size: 1em;
+      background-size: 2em;
+      padding-left: 3em;
+    }
+  </style>
+
+</head>
+<body >
+    <div class="header">
+  <img src="https://seeklogo.com/images/U/unesco-logo-EE9E97077A-seeklogo.com.png" alt="UNESCO" />
+  <h2>UNESCO Heritage Site - South East Asia</h2>
+  <h6> A World Heritage Site is a landmark or area with legal protection by an international convention administered by UNESCO.</h6>
+</div>
+  <!-- DIV pour la carte -->
+  <div id="map" style="width:1260px; height:560px;"></div>
+  
+  <script type="text/javascript">
+//view variable  
+  var view = new ol.View({
+	projection: 'EPSG:4326',
+         center: [120.08719665842509, 5.2607124172067525],
+          zoom: 4,
+        });
+	var view_ov = new ol.View({
+		projection: 'EPSG:4326',
+        center: [120.08719665842509, 5.2607124172067525],
+          zoom: 14,
+        });
+		var base_maps = new ol.layer.Group({
+                'title': 'Base maps',
+                layers: [
+                        new ol.layer.Tile({
+                        title: 'OSM',
+                        type: 'base',
+                        visible: false,
+                        source: new ol.source.OSM()
+                    }),
+						new ol.layer.Tile({
+                        title: 'terrain-background',
+                        type: 'base',
+                        visible: true,
+                        source: new ol.source.Stamen({
+							layer: 'terrain',
+						})
+                    })
+                ]
+            });
+		   
+		var OSM = new ol.layer.Tile({
+            source: new ol.source.OSM(),
+			type: 'base',
+			title: 'OSM',
+          });
+// Style
+var cultureStyle = new ol.style.Style({
+        image: new ol.style.Icon({
+          anchor: [0.5, 0.5],
+          size: [52, 52],
+          offset: [52, 0],
+          opacity: 1,
+          scale: 0.25,
+          src: 'https://github.com/rochanofa/unesco-webmap/blob/main/mountains.png'
+        })
+      });
+  // The map
+  var map = new ol.Map ({
+    target: 'map',
+    view: view,
+	interactions: ol.interaction.defaults({ altShiftDragRotate:false, pinchRotate:false }),
+	//layers: layers
+	//overlays: [popup]
+  });
+   map.addLayer(base_maps);
+  var scale = new ol.control.CanvasScaleLine({
+		units: 'metric',
+		});
+   map.addControl (scale);
+  // GeoJSON layer
+  var vectorSource = new ol.source.Vector({
+    url: 'https://gist.githubusercontent.com/rochanofa/6c4719bb36a14fc7c7fe4c54ea8bfee1/raw/7519148d71371d1fa4022ba232d7248e331dade1/map.geojson',
+    projection: 'EPSG:4326',
+    format: new ol.format.GeoJSON(),
+    attributions: [ "&copy; <a href='http://whc.unesco.org/en/syndication/'>UNESCO</a>","&copy; Icon by <a href='https://www.freepik.com/'>Freepik</a>" ],
+	
+  });
+
+  map.addLayer(new ol.layer.Vector({
+    name: 'Unesco_Heritage_SEA',
+    source: vectorSource,
+	style: cultureStyle
+  }));
+
+var select = new ol.interaction.Select({
+    hitTolerance: 5,
+    multi: true,
+    condition: ol.events.condition.singleClick
+  });
+  map.addInteraction(select);
+var overview = new ol.control.OverviewMap({
+	view: view_ov, 
+//	collapseLabel:'O', 
+//	label: 'O',
+	layers:[OSM]
+	});
+	map.addControl(overview);
+	//toggle fullscreen
+	var full_sc = new ol.control.FullScreen({label:'F'});
+	map.addControl(full_sc);
+	//toggle zoomin+out
+	var zoom = new ol.control.Zoom({zoomInLabel:'+', zoomOutLabel:'-'});
+	map.addControl(zoom);
+	//slider zoom
+	var slider = new ol.control.ZoomSlider();
+	map.addControl(slider);
+	//zoom extent
+	var zoom_ex = new ol.control.ZoomToExtent({
+	extent:[
+              72.74043376467027, 29.475712488267963,
+               167.21952446007802, -15.66225446026747
+            ]
+			});
+	map.addControl(zoom_ex);
+  // Display popup
+ var popup = new ol.Overlay.PopupFeature({
+    popupClass: 'default anim',
+    select: select,
+    canFix: true,
+	showImage:true,
+	maxChar:1000,
+    template: {
+        title: 
+         //function to call the attribute to be displayed on popup
+          function(f) {
+            return f.get('name_en');
+          },
+        attributes: // [ 'category', 'country', 'area(ha)', 'Desc', 'image' ]
+        {
+          'category': { title: 'Category' },
+          'country_en': { title: 'Country' },
+          'area_hectares': { title: 'Area(ha)' },
+          'short_description_en': { title: 'Desc' },
+		  'img': { title: 'Image' },
+        }
+    }
+  });
+  map.addOverlay (popup);
+  
+  var layerSwitcher = new ol.control.LayerSwitcher({
+    activationMode: 'click',
+    startActive: true,
+	tipLabel: 'Layers', // Optional label for button
+    groupSelectStyle: 'group', // Can be 'children' [default], 'group' or 'none'
+    collapseTipLabel: 'Collapse layers',
+  });
+  map.addControl(layerSwitcher);
+  // Control Select 
+ /* var select = new ol.interaction.Select({});
+  map.addInteraction(select);
+
+  // On selected => show/hide popup
+  select.getFeatures().on(['add'], function(e) {
+    var feature = e.element;
+    var content = '<h3>' + feature.get('name_en') + '</h3>';
+    content += "<img src='"+feature.get("img")+"'/>";
+	content += '<h5>' +'Country:'+ feature.get('country_en') + '</h5>';
+    content += feature.get("short_description_en");
+    popup.show(feature.getGeometry().getCoordinates(), content); 
+  })
+  select.getFeatures().on(['remove'], function(e) {
+    popup.hide(); 
+  })*/
+
+  </script>
+  <script src="https://gist.github.com/rochanofa/6c4719bb36a14fc7c7fe4c54ea8bfee1.js"></script>
+</body>
+</html>
